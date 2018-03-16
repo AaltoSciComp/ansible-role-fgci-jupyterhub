@@ -1,0 +1,88 @@
+---
+
+#
+# Apache
+#
+- name: install apache
+  yum: name={{item}} state=latest
+  with_items:
+    - httpd
+    - mod_ssl
+    - openssl
+
+- name: Copy Apache config
+  template: src=apache.conf.j2 dest=/etc/httpd/conf.d/jupyterhub.conf
+             owner=root group=root mode=0644
+  notify: restart apache
+
+- name: apache mod_proxy
+  apache2_module: name={{item}} state=present
+  notify: restart apache
+  with_items:
+    - proxy
+    - ssl
+#- name: apache mod_cgi disable
+#  apache2_module: name=cgi state=absent
+#  notify: restart apache
+
+#- name: Apache listens on ssl port
+#  lineinfile:
+#    regexp: '^Listen '
+#    line: 'Listen 80 443'
+#    insertafter: '^#Listen '
+
+- name: enable apache
+  service: name=httpd enabled=yes state=started enabled=yes daemon_reload=yes
+  notify: restart apache
+
+#
+# Sudo
+#
+- name: Copy sudoers rule
+  template: src=sudoers.j2 dest=/etc/sudoers.d/jupyterhub-daemon
+             owner=root group=root mode=0440
+
+# create jupyterhub-daemon user  # - done on install2
+
+
+#
+# Jupyterhub config
+#
+- name: make /etc/jupyterhub
+  file: path=/etc/jupyterhub state=directory group=jupyterhub-daemon owner=jupyterhub-daemon mode=u=rwx,g=rwx,o=
+- name: create cookie secret
+  shell: "umask 0337 ; openssl rand -hex 32 > /etc/jupyterhub/jupyterhub_cookie_secret ; chown jupyterhub-daemon /etc/jupyterhub/jupyterhub_cookie_secret"
+  args:
+    creates: /etc/jupyterhub/jupyterhub_cookie_secret
+
+#
+# Jupyterhub daemonization
+#
+- name: Copy systemd jupyterhub.service
+  template: src=systemd.j2 dest=/etc/systemd/system/jupyterhub.service
+             owner=root group=root mode=0440
+  notify: restart jupyterhub
+
+- name: Start systemd service
+  systemd: name=jupyterhub.service state=started enabled=yes daemon_reload=yes
+
+
+# - disable user config
+# - enable some kernels
+# - jupyterlab
+# - handle log files
+# - move sjupyter here
+# - learn how kernels work
+# - handle environment variable problems
+#   - batch script
+#   -
+# - kernels
+#   - bash
+#   - matlab
+
+
+# document:
+# - proxy
+# - jupyterlab
+# - the .jupyterhub-tree directory
+# -

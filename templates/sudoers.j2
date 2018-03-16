@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+
+#jupyterhub-daemon ALL= NOPASSWD: sbatch
+jupyterhub-daemon  ALL = (%triton-users) NOPASSWD: SETENV: /usr/bin/sbatch, /usr/bin/squeue, /usr/bin/scancel
