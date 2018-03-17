@@ -66,23 +66,3 @@
 - name: Start systemd service
   systemd: name=jupyterhub.service state=started enabled=yes daemon_reload=yes
 
-
-# - disable user config
-# - enable some kernels
-# - jupyterlab
-# - handle log files
-# - move sjupyter here
-# - learn how kernels work
-# - handle environment variable problems
-#   - batch script
-#   -
-# - kernels
-#   - bash
-#   - matlab
-
-
-# document:
-# - proxy
-# - jupyterlab
-# - the .jupyterhub-tree directory
-# -

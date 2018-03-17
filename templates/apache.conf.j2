@@ -1,25 +1,19 @@
 # {{ ansible_managed }}
 
 <VirtualHost *:80>
-  ServerName jupyter.triton.aalto.fi
-  ServerAlias jupyter01.triton.aalto.fi
+  ServerName {{ jupyter_primary_domain }}
+  ServerAlias {{ jupyter_domain_alts }}
 
   RewriteEngine On
   RewriteCond %{HTTPS} off
   RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 
-  ## Use RewriteEngine to handle websocket connection upgrades
-  #RewriteEngine On
-  #RewriteCond %{HTTP:Connection} Upgrade [NC]
-  #RewriteCond %{HTTP:Upgrade} websocket [NC]
-  #RewriteRule /(.*) ws://127.0.0.1:8000/$1 [P,L]
-
-  #ProxyPass        / "http://127.0.0.1:8000/"
-  #ProxyPassReverse / "http://127.0.0.1:8000/"
-  #ProxyPreserveHost on
 </VirtualHost>
 
 <VirtualHost *:443>
+  ServerName {{ jupyter_primary_domain }}
+  ServerAlias {{ jupyter_domain_alts }}
+
   SSLEngine On
   #SSLAppName QIBM_HTTP_SERVER_APPNAME
   #SSLClientAuth None
@@ -32,21 +26,24 @@
   SSLCertificateFile /etc/ssl/private/jupyter_triton_aalto_fi_2713938/jupyter_triton_aalto_fi.crt
   SSLCertificateChainFile /etc/ssl/private/jupyter_triton_aalto_fi_2713938/DigiCertCA.crt
 
+  ProxyPreserveHost on
+
+  # Dev server - requires separate process running
+  ProxyPass        /dev/ "http://127.0.0.1:8200/dev/"
+  ProxyPassReverse /dev/ "http://127.0.0.1:8200/dev/"
   # Use RewriteEngine to handle websocket connection upgrades
   RewriteEngine On
   RewriteCond %{HTTP:Connection} Upgrade [NC]
   RewriteCond %{HTTP:Upgrade} websocket [NC]
-  RewriteRule /(.*) ws://127.0.0.1:8000/$1 [P,L]
-
-  ProxyPreserveHost on
-
-  # Dev server  - seems we can't have multiple on same domain.  see websocket things above.
-  #ProxyPass        /dev "http://127.0.0.1:8200/"
-  #ProxyPassReverse /dev "http://127.0.0.1:8200/"
+  RewriteRule /dev/(.*) ws://127.0.0.1:8200/dev/$1 [P,L]
 
   # Live server
   ProxyPass        / "http://127.0.0.1:8000/"
   ProxyPassReverse / "http://127.0.0.1:8000/"
+  RewriteEngine On
+  RewriteCond %{HTTP:Connection} Upgrade [NC]
+  RewriteCond %{HTTP:Upgrade} websocket [NC]
+  RewriteRule /(.*) ws://127.0.0.1:8000/$1 [P,L]
 </VirtualHost>
 
 
