@@ -66,3 +66,14 @@
 - name: Start systemd service
   systemd: name=jupyterhub.service state=started enabled=yes daemon_reload=yes
 
+#
+# Shibboleth
+#
+# https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPLinuxRPMInstall
+#- name: install shibboleth
+#  yum: name={{item}} state=latest
+#  with_items:
+#    - shibboleth.x86_64
+
+#- name: Start systemd service
+#  systemd: name=shibd state=started enabled=yes daemon_reload=yes
