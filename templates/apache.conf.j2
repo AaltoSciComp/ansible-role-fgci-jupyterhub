@@ -22,11 +22,26 @@
   SSLProtocol all -SSLv2 -SSLv3 -TLSv1
   Header always set Strict-Transport-Security "max-age=604800; includeSubDomains"
 
-  SSLCertificateKeyFile /etc/ssl/private/jupyter.triton.aalto.fi.key
-  SSLCertificateFile /etc/ssl/private/jupyter_triton_aalto_fi_2713938/jupyter_triton_aalto_fi.crt
-  SSLCertificateChainFile /etc/ssl/private/jupyter_triton_aalto_fi_2713938/DigiCertCA.crt
+  SSLCertificateKeyFile {{ apache_key }}
+  SSLCertificateFile {{ apache_crt }}
+  SSLCertificateChainFile {{ apache_fullchain }}
 
   ProxyPreserveHost on
+
+  <Location /secure>
+    AuthType shibboleth
+    ShibRequestSetting requireSession 1
+    Require valid-user
+  </Location>
+  <Location /Shibboleth.sso>
+    SetHandler shib
+  </Location>
+  # Don't reverse proxy this location
+  ProxyPass /Shibboleth.sso !
+
+  #RewriteCond %{REQUEST_URI} .*Shibboleth.sso.* [NC]
+  #RewriteRule .* - [NC,L,END]
+  #ProxyPass /Shibboleth.sso !
 
   # Dev server - requires separate process running
   ProxyPass        /dev/ "http://127.0.0.1:8200/dev/"

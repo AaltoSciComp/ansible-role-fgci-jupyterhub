@@ -9,11 +9,13 @@
     - httpd
     - mod_ssl
     - openssl
+  tags: ['apache']
 
 - name: Copy Apache config
   template: src=apache.conf.j2 dest=/etc/httpd/conf.d/jupyterhub.conf
              owner=root group=root mode=0644
   notify: restart apache
+  tags: ['apache']
 
 - name: apache mod_proxy
   apache2_module: name={{item}} state=present
@@ -21,6 +23,7 @@
   with_items:
     - proxy
     - ssl
+  tags: ['apache']
 #- name: apache mod_cgi disable
 #  apache2_module: name=cgi state=absent
 #  notify: restart apache
@@ -31,9 +34,16 @@
 #    line: 'Listen 80 443'
 #    insertafter: '^#Listen '
 
+- name: Apache set mpm=worker (for shibboleth)
+  template: src=apache.mpm.conf.j2 dest=/etc/httpd/conf.modules.d/00-mpm.conf
+             owner=root group=root mode=0644
+  notify: restart apache
+  tags: ['apache']
+
 - name: enable apache
   service: name=httpd enabled=yes state=started enabled=yes daemon_reload=yes
   notify: restart apache
+  tags: ['apache']
 
 #
 # Sudo
@@ -63,17 +73,56 @@
              owner=root group=root mode=0440
   notify: restart jupyterhub
 
+- name: Creat systemd persistent log directory
+  file: path=/var/log/journal state=directory mode=770
+  #notify: restart systemd
+
 - name: Start systemd service
   systemd: name=jupyterhub.service state=started enabled=yes daemon_reload=yes
+
 
 #
 # Shibboleth
 #
 # https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPLinuxRPMInstall
-#- name: install shibboleth
-#  yum: name={{item}} state=latest
-#  with_items:
-#    - shibboleth.x86_64
+- name: Shib install shibboleth
+  yum: name={{item}} state=latest
+  with_items:
+    - shibboleth.x86_64
+  tags: ['shib']
+  notify: restart shib
 
-#- name: Start systemd service
-#  systemd: name=shibd state=started enabled=yes daemon_reload=yes
+# copy over shib keys
+# chown shib keys to user shibd
+#   chgrp -R shibd /etc/ssl/private/shib/
+#   chmod -R g+rX /etc/ssl/private/shib/
+
+- name: Shib copy over HAKA root CA
+  copy: src={{shib_metadata_signature}} dest=/etc/shibboleth/
+  tags: ['shib']
+
+- name: Shib install root CRL once
+  shell: "cd /etc/shibboleth/ && wget -N http://crl.tcs.terena.org/TERENASSLCA.crl"
+  creates: /etc/shibboleth/TERENASSLCA.crl
+  tags: ['shib']
+  notify: restart shib
+
+- name: Shib install cron job to update root CRL
+  template: src=shib.cron.update-crl.j2 dest=/etc/cron.d/shib.cron.update-crl
+             owner=root group=root mode=0444
+  tags: ['shib']
+  notify: restart shib
+
+- name: Shib cron job to update root CRL
+  template: src={{item}}.j2 dest=/etc/shibboleth/{{item}}
+             owner=root group=root mode=0644
+  with_items:
+    - shibboleth2.xml
+    - attribute-map.xml
+    - attribute-policy.xml
+  tags: ['shib']
+  notify: restart shib
+
+- name: Shib Start systemd service
+  systemd: name=shibd state=started enabled=yes daemon_reload=yes
+  tags: ['shib']
