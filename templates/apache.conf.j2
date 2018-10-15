@@ -1,16 +1,30 @@
 # {{ ansible_managed }}
 
-<VirtualHost *:80>
+<VirtualHost {{ jupyter_internal_ip }}:80>
   ServerName {{ jupyter_domain_primary }}
   {% if jupyter_domain_alts %} ServerAlias {{ jupyter_domain_alts }}{% endif %}
+  ProxyPass        /     "http://127.0.0.1:8081/"
+  ProxyPassReverse /     "http://127.0.0.1:8081/"
+</VirtualHost>
+<VirtualHost {{ jupyter_internal_ip }}:280>
+  ServerName {{ jupyter_domain_primary }}
+  {% if jupyter_domain_alts %} ServerAlias {{ jupyter_domain_alts }}{% endif %}
+  # Dev server only
+  ProxyPass        /dev/ "http://127.0.0.1:8281/dev/"
+  ProxyPassReverse /dev/ "http://127.0.0.1:8281/dev/"
+</VirtualHost>
 
+
+
+<VirtualHost {{ jupyter_external_ip }}:80>
+  ServerName {{ jupyter_domain_primary }}
+  {% if jupyter_domain_alts %} ServerAlias {{ jupyter_domain_alts }}{% endif %}
   RewriteEngine On
   RewriteCond %{HTTPS} off
   RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-
 </VirtualHost>
 
-<VirtualHost *:443>
+<VirtualHost {{ jupyter_external_ip }}:443>
   ServerName {{ jupyter_domain_primary }}
   {% if jupyter_domain_alts %} ServerAlias {{ jupyter_domain_alts }}{% endif %}
 
@@ -28,10 +42,21 @@
 
   ProxyPreserveHost on
 
-  <Location /secure>
+#  # Testing only
+#  <Location "/cgi-bin/">
+#    AuthType shibboleth
+#    ShibRequestSetting requireSession 1
+#    Require valid-user
+#    ShibUseHeaders On
+#  </Location>
+#  ScriptAlias "/cgi-bin/" "/var/www/cgi-bin/"
+#  ProxyPass /cgi-bin !
+
+  <Location "/dev/hub/login">
     AuthType shibboleth
     ShibRequestSetting requireSession 1
     Require valid-user
+    ShibUseHeaders On
   </Location>
   <Location /Shibboleth.sso>
     SetHandler shib
@@ -44,6 +69,10 @@
   #ProxyPass /Shibboleth.sso !
 
   # Dev server - requires separate process running
+  #<Location /dev>
+  #  Require all granted
+  #  Require ip {{ jhub_dev_ip_range }}
+  #</Location>
   ProxyPass        /dev/ "http://127.0.0.1:8200/dev/"
   ProxyPassReverse /dev/ "http://127.0.0.1:8200/dev/"
   # Use RewriteEngine to handle websocket connection upgrades
@@ -53,8 +82,8 @@
   RewriteRule /dev/(.*) ws://127.0.0.1:8200/dev/$1 [P,L]
 
   # Live server
-  ProxyPass        / "http://127.0.0.1:8000/"
-  ProxyPassReverse / "http://127.0.0.1:8000/"
+  ProxyPass        /     "http://127.0.0.1:8000/"
+  ProxyPassReverse /     "http://127.0.0.1:8000/"
   RewriteEngine On
   RewriteCond %{HTTP:Connection} Upgrade [NC]
   RewriteCond %{HTTP:Upgrade} websocket [NC]

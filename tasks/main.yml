@@ -28,11 +28,17 @@
 #  apache2_module: name=cgi state=absent
 #  notify: restart apache
 
-#- name: Apache listens on ssl port
-#  lineinfile:
-#    regexp: '^Listen '
-#    line: 'Listen 80 443'
-#    insertafter: '^#Listen '
+- name: Apache listens on port 280 for dev server, too.
+  lineinfile:
+    path: '/etc/httpd/conf/httpd.conf'
+    regexp: '^Listen {{item}}'
+    line: 'Listen {{item}} http'
+    insertafter: '^Listen '
+  with_items:
+    - "80"
+    - "280"
+  notify: restart apache
+  tags: ['apache']
 
 - name: Apache set mpm=worker (for shibboleth)
   template: src=apache.mpm.conf.j2 dest=/etc/httpd/conf.modules.d/00-mpm.conf
@@ -51,6 +57,7 @@
 - name: Copy sudoers rule
   template: src=sudoers.j2 dest=/etc/sudoers.d/jupyterhub-daemon
              owner=root group=root mode=0440
+  tags: ['jhub']
 
 # create jupyterhub-daemon user  # - done on install2
 
@@ -60,6 +67,7 @@
 #
 - name: make /etc/jupyterhub
   file: path=/etc/jupyterhub state=directory group=jupyterhub-daemon owner=jupyterhub-daemon mode=u=rwx,g=rwx,o=
+  tags: ['jhub']
 - name: create cookie secret
   shell: "umask 0337 ; openssl rand -hex 32 > /etc/jupyterhub/jupyterhub_cookie_secret ; chown jupyterhub-daemon /etc/jupyterhub/jupyterhub_cookie_secret"
   args:
@@ -84,10 +92,12 @@
   template: src=systemd.j2 dest=/etc/systemd/system/jupyterhub.service
              owner=root group=root mode=0440
   notify: restart jupyterhub
+  tags: ['jhub']
 
-- name: Creat systemd persistent log directory
+- name: Create systemd persistent log directory
   file: path=/var/log/journal state=directory mode=770
   #notify: restart systemd
+  tags: ['jhub']
 
 - name: Start systemd service
   systemd: name=jupyterhub.service state=started enabled=yes daemon_reload=yes
@@ -120,7 +130,8 @@
 
 - name: Shib install root CRL once
   shell: "cd /etc/shibboleth/ && wget -N http://crl.tcs.terena.org/TERENASSLCA.crl"
-  creates: /etc/shibboleth/TERENASSLCA.crl
+  args:
+    creates: /etc/shibboleth/TERENASSLCA.crl
   tags: ['shib']
   notify: restart shib
 
