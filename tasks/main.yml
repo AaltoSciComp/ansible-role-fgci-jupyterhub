@@ -64,10 +64,22 @@
   shell: "umask 0337 ; openssl rand -hex 32 > /etc/jupyterhub/jupyterhub_cookie_secret ; chown jupyterhub-daemon /etc/jupyterhub/jupyterhub_cookie_secret"
   args:
     creates: /etc/jupyterhub/jupyterhub_cookie_secret
+  tags: ['jhub']
+- name: make configurable-http-proxy auth token
+  shell: "umask 0337 ; echo \"CONFIGPROXY_AUTH_TOKEN=`openssl rand -hex 32`\" > /etc/jupyterhub/configurable-http-proxy-token.var ; chown jupyterhub-daemon /etc/jupyterhub/configurable-http-proxy-token.var"
+  args:
+    creates: /etc/jupyterhub/configurable-http-proxy-token.var
+  tags: ['jhub-chp']
 
 #
 # Jupyterhub daemonization
 #
+- name: Copy systemd jhub-chp.service
+  template: src=systemd.chp.j2 dest=/etc/systemd/system/jhub-chp.service
+             owner=root group=root mode=0440
+  notify: restart jhub-chp
+  tags: ['jhub-chp']
+
 - name: Copy systemd jupyterhub.service
   template: src=systemd.j2 dest=/etc/systemd/system/jupyterhub.service
              owner=root group=root mode=0440
@@ -79,6 +91,11 @@
 
 - name: Start systemd service
   systemd: name=jupyterhub.service state=started enabled=yes daemon_reload=yes
+  tags: ['jhub']
+
+- name: Start systemd service
+  systemd: name=jhub-chp.service state=started enabled=yes daemon_reload=yes
+  tags: ['jhub-chp']
 
 
 #

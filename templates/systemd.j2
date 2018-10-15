@@ -3,12 +3,14 @@
 [Unit]
 Description=Jupyterhub
 After=network-online.target
+After=jhub-chp.service
 
 [Service]
 User=jupyterhub-daemon
 ExecStart=/share/apps/jupyterhub/live/miniconda/bin/jupyterhub -f jupyterhub_config.py
 WorkingDirectory=/share/apps/jupyterhub/live/
 Environment=PATH=/share/apps/jupyterhub/live/miniconda/bin:/usr/lib/qt-3.3/bin:/usr/local/bin:/usr/bin CONDA_DEFAULT_ENV=base CONDA_PREFIX=/share/apps/jupyterhub/live/miniconda CONDA_PROMPT_MODIFIER=(base) CONDA_PYTHON_EXE=/share/apps/jupyterhub/live/miniconda/bin/python CONDA_SHLVL=1 JUPYTER_PERSIST_ACROSS_RESTARTS=1
+ProtectSystem=yes
 
 [Install]
 WantedBy=multi-user.target
