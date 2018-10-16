@@ -4,11 +4,9 @@
 # Apache
 #
 - name: install apache
-  yum: name={{item}} state=latest
-  with_items:
-    - httpd
-    - mod_ssl
-    - openssl
+  yum: state=latest
+  args:
+    name: ['httpd', 'mod_ssl', 'openssl']
   tags: ['apache']
 
 - name: Copy Apache config
