@@ -28,17 +28,17 @@
 #  apache2_module: name=cgi state=absent
 #  notify: restart apache
 
-- name: Apache listens on port 280 for dev server, too.
-  lineinfile:
-    path: '/etc/httpd/conf/httpd.conf'
-    regexp: '^Listen {{item}}'
-    line: 'Listen {{item}} http'
-    insertafter: '^Listen '
-  with_items:
-    - "80"
-    - "280"
-  notify: restart apache
-  tags: ['apache']
+#- name: Apache listens on port 280 for dev server, too.
+#  lineinfile:
+#    path: '/etc/httpd/conf/httpd.conf'
+#    regexp: '^Listen {{item}}'
+#    line: 'Listen {{item}} http'
+#    insertafter: '^Listen '
+#  with_items:
+#    - "80"
+#    - "280"
+#  notify: restart apache
+#  tags: ['apache']
 
 - name: Apache set mpm=worker (for shibboleth)
   template: src=apache.mpm.conf.j2 dest=/etc/httpd/conf.modules.d/00-mpm.conf
