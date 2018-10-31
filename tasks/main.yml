@@ -15,12 +15,19 @@
   notify: restart apache
   tags: ['apache']
 
+- name: Copy Apache lua authz config
+  template: src=apache_lua_auth.lua.j2 dest=/etc/httpd/authz_usergroup.lua
+             owner=root group=root mode=0644
+  notify: restart apache
+  tags: ['apache']
+
 - name: apache mod_proxy
   apache2_module: name={{item}} state=present
   notify: restart apache
   with_items:
     - proxy
     - ssl
+    - lua
   tags: ['apache']
 #- name: apache mod_cgi disable
 #  apache2_module: name=cgi state=absent

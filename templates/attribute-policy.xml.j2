@@ -22,10 +22,11 @@
     an AttributeRule for each attribute you want to check.
     -->
     <afp:PermitValueRule id="ScopingRules" xsi:type="AND">
-        <Rule xsi:type="NOT">
-            <Rule xsi:type="AttributeValueRegex" regex="@aalto.fi$"/>
-        </Rule>
+        <Rule xsi:type="AttributeValueRegex" regex="@aalto.fi$"/>
         <Rule xsi:type="saml:AttributeScopeMatchesShibMDScope"/>
+        <!-- <Rule xsi:type="NOT"> -->
+        <!--     <Rule xsi:type="AttributeValueRegex" regex="@aalto.fi$"/> -->
+        <!-- </Rule> -->
     </afp:PermitValueRule>
 
     <afp:AttributeFilterPolicy>

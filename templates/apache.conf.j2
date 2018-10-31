@@ -44,18 +44,18 @@
   ProxyPreserveHost on
 
   # Testing only
-  #<Location "/cgi-bin">
-  #  #<If >
-  #  AuthType shibboleth
-  #  ShibRequestSetting requireSession 1
-  #  ShibUseHeaders On
-  #  <RequireAny>
-  #    Require ip {{ jupyter_aalto_ip_range }}
-  #    Require valid-user
-  #  </RequireAny>
-  #</Location>
-  #ScriptAlias "/cgi-bin/" "/var/www/cgi-bin/"
-  #ProxyPass /cgi-bin !
+  <Location "/cgi-bin">
+    #<If >
+    AuthType shibboleth
+    ShibRequestSetting requireSession 1
+    ShibUseHeaders On
+    <RequireAny>
+      Require ip {{ jupyter_aalto_ip_range }}
+      Require valid-user
+    </RequireAny>
+  </Location>
+  ScriptAlias "/cgi-bin/" "/var/www/cgi-bin/"
+  ProxyPass /cgi-bin !
 
   # Failed Shibboleth integration:
   #<Location "/dev/hub/login">
@@ -71,6 +71,7 @@
   # Don't reverse proxy this location
   ProxyPass /Shibboleth.sso !
 
+  LuaAuthzProvider usergrouplua /etc/httpd/authz_usergroup.lua authz_check_usergroup
 
   # Require EITHER internal IP OR shibboleth
   <Location "/">
@@ -79,18 +80,14 @@
       ShibRequestSetting requireSession true
       ShibUseHeaders On
       #ShibDisable On
-    #</If>
-    #<RequireAny>
-    #  Require ip {{ jupyter_aalto_ip_range }}
       Require valid-user
-    #</RequireAny>
+      Require usergrouplua
     </If>
   </Location>
 
 
   # Dev server - requires separate process running
   <Location /dev>
-    #Require all granted
     Require ip {{ jupyter_aalto_ip_range }}
   </Location>
   ProxyPass        /dev/ "http://127.0.0.1:8200/dev/"
