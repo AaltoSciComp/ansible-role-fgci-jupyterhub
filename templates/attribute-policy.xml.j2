@@ -22,11 +22,11 @@
     an AttributeRule for each attribute you want to check.
     -->
     <afp:PermitValueRule id="ScopingRules" xsi:type="AND">
-        <!--<Rule xsi:type="AttributeValueRegex" regex=".*@aalto.fi$"/>-->
+        <!--<Rule xsi:type="AttributeValueRegex" regex=".*@{{jupyter_trusted_shib_domain}}$"/>-->
         <Rule xsi:type="saml:AttributeScopeMatchesShibMDScope"/>
         <!-- RD: the following rule is to prevent IdPs from impersonating others. -->
         <Rule xsi:type="NOT">
-            <Rule xsi:type="AttributeValueRegex" regex="@aalto.fi$"/>
+            <Rule xsi:type="AttributeValueRegex" regex="@"/>
         </Rule>
     </afp:PermitValueRule>
 
