@@ -118,9 +118,9 @@
 #
 # https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPLinuxRPMInstall
 - name: Shib install shibboleth
-  yum: name={{item}} state=latest
-  with_items:
-    - shibboleth.x86_64
+  yum: state=latest
+  args:
+    name: [shibboleth.x86_64]
   tags: ['shib']
   notify: restart shib
 

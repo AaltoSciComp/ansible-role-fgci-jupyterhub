@@ -48,11 +48,12 @@
     #<If >
     AuthType shibboleth
     ShibRequestSetting requireSession 1
-    ShibUseHeaders On
-    <RequireAny>
+    ShibUseEnvironment On
+    #ShibUseHeaders On
+    <RequireAll>
       Require ip {{ jupyter_aalto_ip_range }}
       Require valid-user
-    </RequireAny>
+    </RequireAll>
   </Location>
   ScriptAlias "/cgi-bin/" "/var/www/cgi-bin/"
   ProxyPass /cgi-bin !
@@ -71,6 +72,7 @@
   # Don't reverse proxy this location
   ProxyPass /Shibboleth.sso !
 
+  # Custom provider using the "id" command to check against system triton-users group.
   LuaAuthzProvider usergrouplua /etc/httpd/authz_usergroup.lua authz_check_usergroup
 
   # Require EITHER internal IP OR shibboleth
@@ -79,9 +81,14 @@
       AuthType shibboleth
       ShibRequestSetting requireSession true
       ShibUseHeaders On
+      ShibUseEnvironment On
       #ShibDisable On
-      Require valid-user
-      Require usergrouplua
+      <RequireAll>
+        Require valid-user
+        Require expr %{REMOTE_USER} =~ /@{{jupyter_trusted_shib_domain}}$/
+        Require usergrouplua
+      </RequireAll>
+      ErrorDocument 401 "A pre-existing Triton account is required to use this service.  See http://scicomp.aalto.fi/triton/apps/jupyter.html"
     </If>
   </Location>
 

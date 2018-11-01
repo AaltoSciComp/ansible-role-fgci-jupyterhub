@@ -1,12 +1,25 @@
 require "apache2"
 function authz_check_usergroup(r)
+    --io.stderr:write('AL 1 ', tostring(r.user), '.')
+    -- This is always called before r.user is set.  Leave immediately and we are called again.
     if r.user == nil then
         return apache2.AUTHZ_DENIED_NO_USER
     end
-    username = string.match(r.user, '(.*)@')
+    -- Check @domain.fi
+    username = string.match(r.user, '(.*)@{{jupyter_trusted_shib_domain}}')
+    -- Disallow null username.  This happens if Shibboleth attribute-policy not satisfied.
+    if username == nil then
+        io.stderr:write('authz_check_usergroup lua: username is nil')
+        return apache2.AUTHZ_DENIED
+    end
+    -- Remove trailing @anything
     username = string.match(username, '[a-zA-Z0-9.-]+')
+    -- Match against output of "id" command.
     if string.find(io.popen('id ' .. username):read(), '{{ apache_lua_users_group }}', 1, true) ~= nil then
         return apache2.AUTHZ_GRANTED
     end
+    -- Failed: print some logging info.  What is right function for this?
+    io.stderr:write("authz_check_usergroup lua: not a member of the proper group: " .. username)
+    io.stderr:write(io.popen('id ' .. username):read())
     return apache2.AUTHZ_DENIED
 end
