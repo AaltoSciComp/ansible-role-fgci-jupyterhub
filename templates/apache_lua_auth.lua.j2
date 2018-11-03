@@ -15,7 +15,7 @@ function authz_check_usergroup(r)
     -- Remove trailing @anything
     username = string.match(username, '[a-zA-Z0-9.-]+')
     -- Match against output of "id" command.
-    if string.find(io.popen('id ' .. username):read(), '{{ apache_lua_users_group }}', 1, true) ~= nil then
+    if string.find(io.popen('id ' .. username):read(), '{{ jupyter_apache_lua_users_group }}', 1, true) ~= nil then
         return apache2.AUTHZ_GRANTED
     end
     -- Failed: print some logging info.  What is right function for this?
