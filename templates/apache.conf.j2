@@ -18,7 +18,7 @@
 
 <VirtualHost *:80>
   ServerName {{ jupyter_domain_primary }}
-  {% if jupyter_domain_alts %}ServerAlias {{ jupyter_domain_alts }}{% endif %}
+  ServerAlias *.user.{{ jupyter_domain_primary }}{% if jupyter_domain_alts %} {{ jupyter_domain_alts }}{% endif %}
 
   RewriteEngine On
   RewriteCond %{HTTPS} off
@@ -27,7 +27,7 @@
 
 <VirtualHost *:443>
   ServerName {{ jupyter_domain_primary }}
-  {% if jupyter_domain_alts %}ServerAlias {{ jupyter_domain_alts }}{% endif %}
+  ServerAlias *.user.{{ jupyter_domain_primary }}{% if jupyter_domain_alts %} {{ jupyter_domain_alts }}{% endif %}
 
   SSLEngine On
   #SSLAppName QIBM_HTTP_SERVER_APPNAME
