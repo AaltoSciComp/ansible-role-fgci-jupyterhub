@@ -45,6 +45,17 @@
 #  notify: restart apache
 #  tags: ['apache']
 
+- name: Apache OCSP Stapling
+  blockinfile:
+    path: '/etc/httpd/conf.d/ssl.conf'
+    #insertafter: ''
+    block: |
+      SSLUseStapling On
+      SSLStaplingCache shmcb:logs/ssl_stapling(32768)
+  notify: restart apache
+  tags: ['apache']
+
+
 - name: Apache set mpm=worker (for shibboleth)
   template: src=apache.mpm.conf.j2 dest=/etc/httpd/conf.modules.d/00-mpm.conf
              owner=root group=root mode=0644
