@@ -1,21 +1,38 @@
 require "apache2"
+
+function tablelength(T)
+  local count = 0
+  for _ in pairs(T) do count = count + 1 end
+  return count
+end
+
+_G.auth_usergroup_cache = { }
+
 function authz_check_usergroup(r)
     --io.stderr:write('AL 1 ', tostring(r.user), '.')
     -- This is always called before r.user is set.  Leave immediately and we are called again.
     if r.user == nil then
         return apache2.AUTHZ_DENIED_NO_USER
     end
+    -- Check our cache
+    io.stderr:write("DEBUG: checking cache for " .. r.user .. tablelength(_G.auth_usergroup_cache) .. "\n")
+    if _G.auth_usergroup_cache[r.user] then
+        return apache2.AUTHZ_GRANTED
+    end
     -- Check @domain.fi
     username = string.match(r.user, '(.*)@{{jupyter_trusted_shib_domain}}')
     -- Disallow null username.  This happens if Shibboleth attribute-policy not satisfied.
-    if username == nil then
-        io.stderr:write('authz_check_usergroup lua: username is nil')
+    if username == nil or username == '' then
+        io.stderr:write('authz_check_usergroup lua: username is nil or empty')
         return apache2.AUTHZ_DENIED
     end
     -- Remove trailing @anything
     username = string.match(username, '[a-zA-Z0-9.-]+')
     -- Match against output of "id" command.
+    io.stderr:write("DEBUG: lua checking authorization " .. username .. "\n")
     if string.find(io.popen('id ' .. username):read(), '{{ jupyter_apache_lua_users_group }}', 1, true) ~= nil then
+        --io.stderr:write("DEBUG: setting cache for " .. r.user .. "\n")
+        _G.auth_usergroup_cache[r.user] = 1
         return apache2.AUTHZ_GRANTED
     end
     -- Failed: print some logging info.  What is right function for this?
