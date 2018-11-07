@@ -33,9 +33,16 @@
   #SSLAppName QIBM_HTTP_SERVER_APPNAME
   #SSLClientAuth None
   SetEnv HTTPS_PORT 443
-  SSLCipherSuite HIGH:!aNULL:!MD5
-  SSLProtocol all -SSLv2 -SSLv3 -TLSv1
-  Header always set Strict-Transport-Security "max-age=604800; includeSubDomains"
+  SSLHonorCipherOrder On
+  SSLCompression Off
+  SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
+  #SSLCipherSuite HIGH:!aNULL:!MD5
+  SSLCipherSuite ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
+  Header always set Strict-Transport-Security "max-age=15768000; includeSubDomains"
+  Header always set Referrer-Policy "strict-origin"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "sameorigin"
 
   SSLCertificateKeyFile {{ apache_key }}
   SSLCertificateFile {{ apache_crt }}
@@ -75,20 +82,34 @@
   # Custom provider using the "id" command to check against system triton-users group.
   LuaAuthzProvider usergrouplua /etc/httpd/authz_usergroup.lua authz_check_usergroup
 
+  # DBD provider
+  #DBDriver sqlite3
+  #DBDParams "file:/etc/jupyterhub/jupyterhub.sqlite?mode=ro"
+  #AuthzDBDQuery "select 'allowed-group' from users where name=substr(%s, 1, instr(%s, '@'))"
+
+  #ShibDisable On
+  ErrorDocument 401 "A pre-existing Triton account is required to use this service.  See http://scicomp.aalto.fi/triton/apps/jupyter.html"
+
   # Require EITHER internal IP OR shibboleth
   <Location "/">
     <If "! -R '{{ jupyter_aalto_ip_range }}'" >
       AuthType shibboleth
-      ShibRequestSetting requireSession true
-      ShibUseHeaders On
       ShibUseEnvironment On
-      #ShibDisable On
+      ShibRequestSetting requireSession true
       <RequireAll>
         Require valid-user
         Require expr %{REMOTE_USER} =~ /@{{jupyter_trusted_shib_domain}}$/
         Require usergrouplua
       </RequireAll>
-      ErrorDocument 401 "A pre-existing Triton account is required to use this service.  See http://scicomp.aalto.fi/triton/apps/jupyter.html"
+    </If>
+  </Location>
+  <Location "/user">
+    <If "-R '130.233.97.225' || ! -R '{{ jupyter_aalto_ip_range }}'" >
+      ShibRequestSetting requireSession true
+      <RequireAll>
+        Require valid-user
+        Require expr %{REMOTE_USER} =~ /@{{jupyter_trusted_shib_domain}}$/
+      </RequireAll>
     </If>
   </Location>
 

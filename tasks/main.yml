@@ -21,7 +21,7 @@
   notify: restart apache
   tags: ['apache']
 
-- name: apache mod_proxy
+- name: apache modules enable
   apache2_module: name={{item}} state=present
   notify: restart apache
   with_items:
