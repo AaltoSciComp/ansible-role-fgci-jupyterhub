@@ -29,6 +29,18 @@
     - ssl
     - lua
   tags: ['apache']
+#- name: apache modules disable
+#  apache2_module: name={{item}} state=absent
+#  notify: restart apache
+#  with_items:
+#    - autoindex
+#    - userdir
+#  tags: ['apache']
+#- name: Apache remove unneeded modules
+#  replace: path=/etc/httpd/conf.modules.d/00-base.conf regexp='^([^#]*LoadModule {{item}}.*)' replace='#\1'
+#  with_items:
+#    - autoindex_module
+#    - userdir_module
 #- name: apache mod_cgi disable
 #  apache2_module: name=cgi state=absent
 #  notify: restart apache

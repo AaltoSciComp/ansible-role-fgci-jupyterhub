@@ -1,18 +1,5 @@
+#jinja2: trim_blocks:False
 # {{ ansible_managed }}
-
-#<VirtualHost {{ jupyter_internal_ip }}:80>
-#  ServerName {{ jupyter_domain_internal }}
-#  {% if jupyter_domain_alts %} ServerAlias {{ jupyter_domain_alts }}{% endif %}
-#  ProxyPass        /     "http://127.0.0.1:8081/"
-#  ProxyPassReverse /     "http://127.0.0.1:8081/"
-#</VirtualHost>
-#<VirtualHost {{ jupyter_internal_ip }}:280>
-#  ServerName {{ jupyter_domain_internal }}
-#  {% if jupyter_domain_alts %} ServerAlias {{ jupyter_domain_alts }}{% endif %}
-#  # Dev server only
-#  ProxyPass        /dev/ "http://127.0.0.1:8281/dev/"
-#  ProxyPassReverse /dev/ "http://127.0.0.1:8281/dev/"
-#</VirtualHost>
 
 
 
@@ -25,53 +12,15 @@
   RewriteRule (.*) https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 </VirtualHost>
 
+
+
 <VirtualHost *:443>
   ServerName {{ jupyter_domain_primary }}
-  ServerAlias *.user.{{ jupyter_domain_primary }}{% if jupyter_domain_alts %} {{ jupyter_domain_alts }}{% endif %}
-
-  SSLEngine On
-  #SSLAppName QIBM_HTTP_SERVER_APPNAME
-  #SSLClientAuth None
-  SetEnv HTTPS_PORT 443
-  SSLHonorCipherOrder On
-  SSLCompression Off
-  SSLProtocol all -SSLv2 -SSLv3 -TLSv1 -TLSv1.1
-  #SSLCipherSuite HIGH:!aNULL:!MD5
-  SSLCipherSuite ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256
-  Header always set Strict-Transport-Security "max-age=15768000; includeSubDomains"
-  Header always set Referrer-Policy "strict-origin"
-  Header always set X-XSS-Protection "1; mode=block"
-  Header always set X-Content-Type-Options "nosniff"
-  Header always set X-Frame-Options "sameorigin"
-
+  {% if jupyter_domain_alts %}ServerAlias {{ jupyter_domain_alts }}
+  {% endif %}
   SSLCertificateKeyFile {{ apache_key }}
   SSLCertificateFile {{ apache_crt }}
   SSLCertificateChainFile {{ apache_fullchain }}
-
-  ProxyPreserveHost on
-
-  # Testing only
-  <Location "/cgi-bin">
-    #<If >
-    AuthType shibboleth
-    ShibRequestSetting requireSession 1
-    ShibUseEnvironment On
-    #ShibUseHeaders On
-    <RequireAll>
-      Require ip {{ jupyter_aalto_ip_range }}
-      Require valid-user
-    </RequireAll>
-  </Location>
-  ScriptAlias "/cgi-bin/" "/var/www/cgi-bin/"
-  ProxyPass /cgi-bin !
-
-  # Failed Shibboleth integration:
-  #<Location "/dev/hub/login">
-  #  AuthType shibboleth
-  #  ShibRequestSetting requireSession 1
-  #  Require valid-user
-  #  #ShibUseHeaders On
-  #</Location>
 
   <Location /Shibboleth.sso>
     SetHandler shib
@@ -79,20 +28,9 @@
   # Don't reverse proxy this location
   ProxyPass /Shibboleth.sso !
 
-  # Custom provider using the "id" command to check against system triton-users group.
-  LuaAuthzProvider usergrouplua /etc/httpd/authz_usergroup.lua authz_check_usergroup
-
-  # DBD provider
-  #DBDriver sqlite3
-  #DBDParams "file:/etc/jupyterhub/jupyterhub.sqlite?mode=ro"
-  #AuthzDBDQuery "select 'allowed-group' from users where name=substr(%s, 1, instr(%s, '@'))"
-
-  #ShibDisable On
-  ErrorDocument 401 "A pre-existing Triton account is required to use this service.  See http://scicomp.aalto.fi/triton/apps/jupyter.html"
-
   # Require EITHER internal IP OR shibboleth
   <Location "/">
-    <If "! -R '{{ jupyter_aalto_ip_range }}'" >
+    <If "-R '130.233.97.225' || ! -R '{{ jupyter_aalto_ip_range }}'" >
       AuthType shibboleth
       ShibUseEnvironment On
       ShibRequestSetting requireSession true
@@ -113,26 +51,18 @@
     </If>
   </Location>
 
-
-  # Dev server - requires separate process running
-  <Location /dev>
-    Require ip {{ jupyter_aalto_ip_range }}
-  </Location>
-  ProxyPass        /dev/ "http://127.0.0.1:8200/dev/"
-  ProxyPassReverse /dev/ "http://127.0.0.1:8200/dev/"
-  # Use RewriteEngine to handle websocket connection upgrades
-  RewriteEngine On
-  RewriteCond %{HTTP:Connection} Upgrade [NC]
-  RewriteCond %{HTTP:Upgrade} websocket [NC]
-  RewriteRule /dev/(.*) ws://127.0.0.1:8200/dev/$1 [P,L]
-
-  # Live server
-  ProxyPass        /     "http://127.0.0.1:8000/"
-  ProxyPassReverse /     "http://127.0.0.1:8000/"
-  RewriteEngine On
-  RewriteCond %{HTTP:Connection} Upgrade [NC]
-  RewriteCond %{HTTP:Upgrade} websocket [NC]
-  RewriteRule /(.*) ws://127.0.0.1:8000/$1 [P,L]
+  {% include 'apache.common.j2'%}
 </VirtualHost>
 
+
+
+#<VirtualHost *:443>
+#  ServerName user.{{ jupyter_domain_primary }}
+#  ServerAlias *.user.{{ jupyter_domain_primary }}
+#  SSLCertificateKeyFile {{ apache_key_user }}
+#  SSLCertificateFile {{ apache_crt_user }}
+#  SSLCertificateChainFile {{ apache_fullchain_user }}
+#
+#  {#% include 'apache.common.j2' %#}
+#</VirtualHost>
 
