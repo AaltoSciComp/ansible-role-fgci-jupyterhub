@@ -22,6 +22,7 @@
   SSLCertificateFile {{ apache_crt }}
   SSLCertificateChainFile {{ apache_fullchain }}
 
+  {% if shib_enabled %}
   <Location /Shibboleth.sso>
     SetHandler shib
   </Location>
@@ -50,6 +51,7 @@
       </RequireAll>
     </If>
   </Location>
+  {% endif %}
 
   {% include 'apache.common.j2'%}
 </VirtualHost>

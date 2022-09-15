@@ -48,7 +48,9 @@
   #AuthzDBDQuery "select 'allowed-group' from users where name=substr(%s, 1, instr(%s, '@'))"
 
   #ShibDisable On
+  {% if shib_enabled %}
   ErrorDocument 401 "A pre-existing Triton account is required to use this service.  See http://scicomp.aalto.fi/triton/apps/jupyter.html"
+  {% endif %}
 
 {% if False %}
   <Location /Shibboleth.sso>
